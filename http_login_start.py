@@ -26,13 +26,18 @@ class ResultOutput(object):
         self.msg = u''
 
     def set_code(self, code):
-        self.code = code
+        self.code = str(code)
 
     def set_msg(self, msg):
         self.msg = msg
 
     def done(self):
-        sys.stdout.write(unicode(self.code) + unicode(self.msg))
+        sys.stdout.write(self.code)
+        try:
+            sys.stdout.write(self.msg.encode('utf-8') )
+        except Exception:
+            sys.stdout.write(self.msg)
+        sys.stdout.write('\n')
         exit()
 
 
