@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 import base64
-
 import hashlib
 import json
-from Crypto.Cipher import PKCS1_v1_5
-from Crypto.PublicKey import RSA
-
-from redis import StrictRedis
+import logging
+import os
+import pickle
+import re
+import sys
+import time
 
 import requests
-import logging
-import re
-import time
+from Crypto.Cipher import PKCS1_v1_5
+from Crypto.PublicKey import RSA
+from redis import StrictRedis
 
 requests.packages.urllib3.disable_warnings()
 logging.basicConfig()
@@ -34,7 +35,7 @@ class MySession(requests.Session):
         try:
             return super(MySession, self).post(url, data, json, **kwargs)
         except (requests.exceptions.ReadTimeout, requests.exceptions.Timeout):
-            logger.debug('请求连接超时，重试一次. url: {}'.format(url))
+            logger.debug(u'请求连接超时，重试一次. url: {}'.format(url))
             return super(MySession, self).post(url, data, json, **kwargs)
 
 
@@ -50,7 +51,7 @@ class HttpBasic(object):
             'Accept': 'text/javascript, application/javascript, application/ecmascript, application/x-ecmascript, '
                       '*/*; q=0.01 '
         }
-        self._crawler_session.verifyCode = ''
+        self.verifyCode = ''
         self._crawler_session.verify = False
 
     def _quick_get_request(self, *args, **kwargs):
@@ -117,7 +118,7 @@ class HttpBasic(object):
         self.log(logging.DEBUG, msg, **kwargs)
 
     def log(self, method, msg, **kwargs):
-        logger.log(method, msg)
+        sys.stdout.write(msg + '\n')
 
 
 class HttpLoginCMCC(HttpBasic):
@@ -190,7 +191,7 @@ class HttpLoginCMCC(HttpBasic):
         return base64.b64encode(strmd5.encode()).decode()
 
     def check_user_login(self, referer, channel_id='12034'):
-        timestamp = now_ts_in_millis()
+        timestamp = float(now_ts_in_millis())
         json_data = {
             "serviceName": "",
             "header": {
@@ -219,15 +220,15 @@ class HttpLoginCMCC(HttpBasic):
         :return:
         """
         # 判断是否以前已经登陆过。则获取verifyCode，检查是否需要发送短信
-        self._crawler_session.verifyCode = ''
+        self.verifyCode = ''
         self.easy_get(self._INIT_HOME_URL, Referer=self._INIT_HOME_URL)
         self.easy_get(self._INIT_LOAD_SEND_FLAG.format(now_ts_in_millis()), Referer=self._INIT_HOME_URL)
         resp = None
-        if self._crawler_session.verifyCode:
+        if self.verifyCode:
             cur_headers = {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Referer': self._INIT_HOME_URL,
-                'Cookie': 'verifyCode=' + self._crawler_session.verifyCode
+                'Cookie': 'verifyCode=' + self.verifyCode
             }
             resp = self.call(
                 self.Request(method='GET', url=self._INIT_LOGIN_URL.format(self.mobile, now_ts_in_millis()),
@@ -269,28 +270,28 @@ class HttpLoginCMCC(HttpBasic):
         resp = self.call(req)
         text = resp.text
         if '0' in text:
-            self.info('短信发送成功', send=True)
+            self.info(u'短信发送成功')
             return True
         elif '1' in text:
-            err_msg = '短信发送失败,请一分钟后再试'
+            err_msg = u'短信发送失败,请一分钟后再试'
         elif '2' in text:
-            err_msg = '短信下发数已达上限,请明天再试'
+            err_msg = u'短信下发数已达上限,请明天再试'
         elif '3' in text:
-            err_msg = '短信发送过于频繁,请明天再试'
+            err_msg = u'短信发送过于频繁,请明天再试'
         elif '6' in text:
-            err_msg = '短信发送失败，请稍后再试'
-            self.warning(err_msg, send=True)
+            err_msg = u'短信发送失败，请稍后再试'
+            self.warning(err_msg)
             raise ChangeProxyTerminationError
         else:
-            err_msg = '短信发送失败,请重试'
-        self.warning(err_msg, send=True)
+            err_msg = u'短信发送失败,请重试'
+        self.warning(err_msg)
         return False
 
     def go_login_with_passwd(self, password, sms_code=''):
         """通过服务密码登陆"""
         rsa_pwd = self.__encryption_passwd(password)
-        if self._crawler_session.verifyCode is None:
-            self._crawler_session.verifyCode = ''
+        if self.verifyCode is None:
+            self.verifyCode = ''
         resp = self.call(self.Request(method='POST',
                                       url="https://login.10086.cn/login.htm",
                                       data={
@@ -310,7 +311,7 @@ class HttpLoginCMCC(HttpBasic):
                                       headers={
                                           'X-Requested-With': 'XMLHttpRequest',
                                           'Referer': self._INIT_HOME_URL,
-                                          'Cookie': 'verifyCode=' + self._crawler_session.verifyCode,
+                                          'Cookie': 'verifyCode=' + self.verifyCode,
                                           'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                                           'Accept': 'application/json, text/javascript, */*; q=0.01'
                                       }))
@@ -338,7 +339,7 @@ class HttpLoginCMCC(HttpBasic):
                                       headers={
                                           'X-Requested-With': 'XMLHttpRequest',
                                           'Referer': self._INIT_HOME_URL,
-                                          'Cookie': 'verifyCode=' + self._crawler_session.verifyCode,
+                                          'Cookie': 'verifyCode=',
                                           'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                                           'Accept': 'application/json, text/javascript, */*; q=0.01'
                                       }))
@@ -393,10 +394,10 @@ class HttpLoginCMCC(HttpBasic):
                 self._crawler_session.user_info_text = resp.text
                 return True
             else:
-                self.warning('系统繁忙，请您稍后再做手机认证', send=True)
+                self.warning(u'系统繁忙，请您稍后再做手机认证', send=True)
                 return False
         elif '3011' == jo['code']:
-            err_msg = '请在移动商城取消登录保护，链接https://login.10086.cn/protect/protect_web.htm，如有疑问，请咨询客服'
+            err_msg = u'请在移动商城取消登录保护，链接https://login.10086.cn/protect/protect_web.htm，如有疑问，请咨询客服'
             self.warning(err_msg, send=True)
             return False
         else:
@@ -447,14 +448,12 @@ def http_cmcc_go_login(obj, sms_code):
 
 
 if __name__ == '__main__':
-    import sys, os.path, os
-    import pickle
 
     mobile = ''
     if len(sys.argv) >= 2:
         mobile = sys.argv[1]
     else:
-        print(False)
+        sys.stdout.write('False')
         exit()
 
     root_path = os.path.join(os.path.dirname(__file__), 'cmcc_pk')
@@ -467,12 +466,12 @@ if __name__ == '__main__':
             with open(pk_path, 'rb') as f:
                 obj = pickle.loads(f.read())
                 if http_cmcc_go_login(obj, sms_code):
-                    print(True)
+                    sys.stdout.write('True')
                 else:
-                    print(False)
+                    sys.stdout.write('False')
             os.remove(pk_path)
         else:
-            print(False)
+            sys.stdout.write('False')
             exit()
     else:
         if os.path.exists(pk_path):
@@ -480,4 +479,3 @@ if __name__ == '__main__':
         obj = http_cmcc_send_code(mobile)
         with open(pk_path, 'wb') as f:
             f.write(pickle.dumps(obj))
-
