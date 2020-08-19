@@ -10,6 +10,12 @@ python http_login_start.py 1865773084
 python http_login_start.py 1865773084 435323
 ```
 
+
+
+---
+目前ERROR输出值暂时无效
+
+
 | 类名 | code |备注 |
 | -------- | -------- | ------- | 
 | SendMsgMaxError | 90001| 发送短信到达最大值
