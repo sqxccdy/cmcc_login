@@ -7,7 +7,7 @@ python http_login_start.py 1865773084
 
 验证短信，并将cookie写入到redis
 ```
-python http_login_start.py 1865773084
+python http_login_start.py 1865773084 435323
 ```
 
 | 类名 | code |备注 |
