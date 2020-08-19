@@ -1,0 +1,4 @@
+requests
+pyexecjs
+redis
+pycryptodome
