@@ -1,3 +1,14 @@
+执行方式
+
+发送
+```
+python http_login_start.py 1865773084
+```
+
+验证短信，并将cookie写入到redis
+```
+python http_login_start.py 1865773084
+```
 
 | 类名 | code |备注 |
 | -------- | -------- | ------- | 

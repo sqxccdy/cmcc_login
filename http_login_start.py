@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
-import execjs
+
 import hashlib
 import json
 from Crypto.Cipher import PKCS1_v1_5
@@ -179,6 +179,7 @@ class HttpLoginCMCC(HttpBasic):
                            self.navigator['userAgent']])
 
         seed_md5 = hashlib.md5(strSeed.encode()).hexdigest()[25: 32]
+        import execjs
         rnd = self.formar_number(execjs.compile("parseInt").call('parseInt', seed_md5, 16), 6)
         return ''.join([date_format,
                         milliseconds,
@@ -431,26 +432,52 @@ rd = StrictRedis()
 
 
 def http_cmcc_send_code(mobile):
-    HTTP_CMCC[mobile] = HttpLoginCMCC(mobile)
-    HTTP_CMCC[mobile].need_verify_code(mobile)
-    HTTP_CMCC[mobile].send_first_code(mobile)
-    return mobile
+    http_login_cmcc_obj = HttpLoginCMCC(mobile)
+    http_login_cmcc_obj.need_verify_code(mobile)
+    http_login_cmcc_obj.send_first_code(mobile)
+    return http_login_cmcc_obj
 
 
-def http_cmcc_go_login(mobile, sms_code):
-    flag = HTTP_CMCC[mobile].go_login(sms_code=sms_code)
+def http_cmcc_go_login(obj, sms_code):
+    flag = obj.go_login(sms_code=sms_code)
     if flag:
-        rd.setex('cmcc_cookie_{}'.format(mobile), 7200, HTTP_CMCC[mobile].get_cookies())
-        HTTP_CMCC[mobile].debug(u'设置cookie成功')
-    del HTTP_CMCC[mobile]
+        rd.setex('cmcc_cookie_{}'.format(obj.mobile), 7200, obj.get_cookies())
+        obj.debug(u'设置cookie成功')
     return flag
 
 
 if __name__ == '__main__':
-    _ = '18258231737'
-    http_cmcc_send_code(_)
-    code = input('sms_code: ')
-    if http_cmcc_go_login(_, code):
-        print('success')
+    import sys, os.path, os
+    import pickle
+
+    mobile = ''
+    if len(sys.argv) == 2:
+        mobile = sys.argv[1]
     else:
-        print('error')
+        print(False)
+        exit()
+
+    root_path = os.path.join(os.path.dirname(__file__), 'cmcc_pk')
+    if not os.path.exists(root_path):
+        os.mkdir(root_path)
+    pk_path = os.path.join(root_path, '{}.pk'.format(mobile))
+    if len(sys.argv) == 3:
+        sms_code = sys.argv[2]
+        if os.path.exists(pk_path):
+            with open(pk_path, 'rb') as f:
+                obj = pickle.loads(f.read())
+                if http_cmcc_go_login(obj, sms_code):
+                    print(True)
+                else:
+                    print(False)
+            os.remove(pk_path)
+        else:
+            print(False)
+            exit()
+    else:
+        if os.path.exists(pk_path):
+            os.remove(pk_path)
+        obj = http_cmcc_send_code(mobile)
+        with open(pk_path, 'wb') as f:
+            f.write(pickle.dumps(obj))
+
