@@ -433,7 +433,7 @@ rd = StrictRedis()
 def http_cmcc_send_code(mobile):
     HTTP_CMCC[mobile] = HttpLoginCMCC(mobile)
     HTTP_CMCC[mobile].need_verify_code(mobile)
-    # HTTP_CMCC[mobile].send_first_code(mobile)
+    HTTP_CMCC[mobile].send_first_code(mobile)
     return mobile
 
 
