@@ -32,6 +32,7 @@ class ResultOutput(object):
         self.msg = msg
 
     def done(self):
+        sys.stdout.write('\0')
         sys.stdout.write(self.code)
         try:
             sys.stdout.write(self.msg.encode('utf-8') )
