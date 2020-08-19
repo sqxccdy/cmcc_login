@@ -20,6 +20,25 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 
+class ResultOutput(object):
+    def __init__(self):
+        self.code = 10000
+        self.msg = u''
+
+    def set_code(self, code):
+        self.code = code
+
+    def set_msg(self, msg):
+        self.msg = msg
+
+    def done(self):
+        sys.stdout.write(unicode(self.code) + unicode(self.msg))
+        exit()
+
+
+result_output = ResultOutput()
+
+
 class ChangeProxyTerminationError(SystemError):
     code = 90009
 
@@ -270,21 +289,19 @@ class HttpLoginCMCC(HttpBasic):
         resp = self.call(req)
         text = resp.text
         if '0' in text:
-            self.info(u'短信发送成功')
+            result_output.set_msg(u'短信发送成功')
             return True
         elif '1' in text:
-            err_msg = u'短信发送失败,请一分钟后再试'
+            result_output.set_msg(u'短信发送失败,请一分钟后再试')
         elif '2' in text:
-            err_msg = u'短信下发数已达上限,请明天再试'
+            result_output.set_msg(u'短信下发数已达上限,请明天再试')
         elif '3' in text:
-            err_msg = u'短信发送过于频繁,请明天再试'
+            result_output.set_msg(u'短信发送过于频繁,请明天再试')
         elif '6' in text:
-            err_msg = u'短信发送失败，请稍后再试'
-            self.warning(err_msg)
-            raise ChangeProxyTerminationError
+            result_output.set_msg(u'短信发送失败，请稍后再试')
         else:
-            err_msg = u'短信发送失败,请重试'
-        self.warning(err_msg)
+            result_output.set_msg(u'短信发送失败,请重试')
+        result_output.set_code(20002)
         return False
 
     def go_login_with_passwd(self, password, sms_code=''):
@@ -394,15 +411,17 @@ class HttpLoginCMCC(HttpBasic):
                 self._crawler_session.user_info_text = resp.text
                 return True
             else:
-                self.warning(u'系统繁忙，请您稍后再做手机认证', send=True)
+                result_output.set_code(20002)
+                result_output.set_msg(u'系统繁忙，请您稍后再做手机认证')
                 return False
         elif '3011' == jo['code']:
-            err_msg = u'请在移动商城取消登录保护，链接https://login.10086.cn/protect/protect_web.htm，如有疑问，请咨询客服'
-            self.warning(err_msg, send=True)
+            result_output.set_code(20002)
+            result_output.set_msg(u'请在移动商城取消登录保护，链接https://login.10086.cn/protect/protect_web.htm，如有疑问，请咨询客服')
             return False
         else:
             err_msg = jo['desc']
-            self.warning(err_msg, send=True)
+            result_output.set_code(20002)
+            result_output.set_msg(err_msg)
             return False
         # except Exception:
         # self._change_proxy()
@@ -443,7 +462,7 @@ def http_cmcc_go_login(obj, sms_code):
     flag = obj.go_login(sms_code=sms_code)
     if flag:
         rd.setex('cmcc_cookie_{}'.format(obj.mobile), 7200, obj.get_cookies())
-        obj.debug(u'设置cookie成功')
+        result_output.set_msg(u'设置cookie成功')
     return flag
 
 
@@ -453,8 +472,9 @@ if __name__ == '__main__':
     if len(sys.argv) >= 2:
         mobile = sys.argv[1]
     else:
-        sys.stdout.write(u'False')
-        exit()
+        result_output.set_code(20003)
+        result_output.set_msg(u'参数错误')
+        result_output.done()
 
     root_path = os.path.join(os.path.dirname(__file__), 'cmcc_pk')
     if not os.path.exists(root_path):
@@ -465,17 +485,15 @@ if __name__ == '__main__':
         if os.path.exists(pk_path):
             with open(pk_path, 'rb') as f:
                 obj = pickle.loads(f.read())
-                if http_cmcc_go_login(obj, sms_code):
-                    sys.stdout.write(u'True')
-                else:
-                    sys.stdout.write(u'False')
+                if not http_cmcc_go_login(obj, sms_code):
+                    result_output.set_code(20002)
             os.remove(pk_path)
         else:
-            sys.stdout.write(u'False')
-            exit()
+            result_output.set_code(20003)
     else:
         if os.path.exists(pk_path):
             os.remove(pk_path)
         obj = http_cmcc_send_code(mobile)
         with open(pk_path, 'wb') as f:
             f.write(pickle.dumps(obj))
+    result_output.done()
