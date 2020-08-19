@@ -453,7 +453,7 @@ if __name__ == '__main__':
     if len(sys.argv) >= 2:
         mobile = sys.argv[1]
     else:
-        sys.stdout.write('False')
+        sys.stdout.write(u'False')
         exit()
 
     root_path = os.path.join(os.path.dirname(__file__), 'cmcc_pk')
@@ -466,12 +466,12 @@ if __name__ == '__main__':
             with open(pk_path, 'rb') as f:
                 obj = pickle.loads(f.read())
                 if http_cmcc_go_login(obj, sms_code):
-                    sys.stdout.write('True')
+                    sys.stdout.write(u'True')
                 else:
-                    sys.stdout.write('False')
+                    sys.stdout.write(u'False')
             os.remove(pk_path)
         else:
-            sys.stdout.write('False')
+            sys.stdout.write(u'False')
             exit()
     else:
         if os.path.exists(pk_path):
