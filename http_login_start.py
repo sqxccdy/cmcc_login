@@ -33,11 +33,12 @@ class ResultOutput(object):
 
     def done(self):
         sys.stdout.write('\0')
-        sys.stdout.write(self.code)
+        code = self.code
         try:
-            sys.stdout.write(self.msg.encode('utf-8') )
+            msg = self.msg.encode('utf-8')
         except Exception:
-            sys.stdout.write(self.msg)
+            msg = self.msg
+        sys.stdout.write(json.dumps({'code': code, 'msg': msg}))
         sys.stdout.write('\n')
         exit()
 
@@ -474,32 +475,38 @@ def http_cmcc_go_login(obj, sms_code):
 
 if __name__ == '__main__':
 
-    mobile = ''
-    if len(sys.argv) >= 2:
-        mobile = sys.argv[1]
-    else:
-        result_output.set_code(20003)
-        result_output.set_msg(u'参数错误')
-        result_output.done()
-
-    root_path = os.path.join(os.path.dirname(__file__), 'cmcc_pk')
-    if not os.path.exists(root_path):
-        os.mkdir(root_path)
-    pk_path = os.path.join(root_path, '{}.pk'.format(mobile))
-    if len(sys.argv) == 3:
-        sms_code = sys.argv[2]
-        if os.path.exists(pk_path):
-            with open(pk_path, 'rb') as f:
-                obj = pickle.loads(f.read())
-                if not http_cmcc_go_login(obj, sms_code):
-                    result_output.set_code(20002)
-            os.remove(pk_path)
+    try:
+        mobile = ''
+        if len(sys.argv) >= 2:
+            mobile = sys.argv[1]
         else:
             result_output.set_code(20003)
-    else:
-        if os.path.exists(pk_path):
-            os.remove(pk_path)
-        obj = http_cmcc_send_code(mobile)
-        with open(pk_path, 'wb') as f:
-            f.write(pickle.dumps(obj))
+            result_output.set_msg(u'参数错误')
+            result_output.done()
+
+        root_path = os.path.join(os.path.dirname(__file__), 'cmcc_pk')
+        if not os.path.exists(root_path):
+            os.mkdir(root_path)
+        pk_path = os.path.join(root_path, '{}.pk'.format(mobile))
+        if len(sys.argv) == 3:
+            sms_code = sys.argv[2]
+            if os.path.exists(pk_path):
+                with open(pk_path, 'rb') as f:
+                    obj = pickle.loads(f.read())
+                    if not http_cmcc_go_login(obj, sms_code):
+                        result_output.set_code(20002)
+                os.remove(pk_path)
+            else:
+                result_output.set_code(20003)
+        else:
+            if os.path.exists(pk_path):
+                os.remove(pk_path)
+            obj = http_cmcc_send_code(mobile)
+            with open(pk_path, 'wb') as f:
+                f.write(pickle.dumps(obj))
+    except Exception:
+        import traceback
+
+        result_output.set_code(20001)
+        result_output.set_msg(traceback.format_exc())
     result_output.done()
