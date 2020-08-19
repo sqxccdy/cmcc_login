@@ -451,7 +451,7 @@ if __name__ == '__main__':
     import pickle
 
     mobile = ''
-    if len(sys.argv) == 2:
+    if len(sys.argv) >= 2:
         mobile = sys.argv[1]
     else:
         print(False)
