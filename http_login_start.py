@@ -38,7 +38,7 @@ class ResultOutput(object):
             msg = self.msg.encode('utf-8')
         except Exception:
             msg = self.msg
-        sys.stdout.write(json.dumps({'code': code, 'msg': msg}))
+        sys.stdout.write(json.dumps({'code': code, 'msg': msg}, ensure_ascii=False))
         sys.stdout.write('\n')
         exit()
 
