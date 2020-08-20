@@ -199,7 +199,8 @@ class HttpLoginCMCC(HttpBasic):
         current = curtime / 1000
         timeArray = time.localtime(current)
         date_format = time.strftime("%Y%m%d%H%M%S", timeArray)
-        milliseconds = str(current).split('.')[1]
+        milliseconds = str(current)
+        # milliseconds = str(current).split('.')[1]
         # 根据当前时间毫秒数、url以及用户特定信息进行md5运算，产生随机数
         strSeed = ''.join([str(curtime), ",", href, ',', self.navigator['appName'], ',',
                            self.navigator['appVersion'], ',',
@@ -217,7 +218,7 @@ class HttpLoginCMCC(HttpBasic):
         return base64.b64encode(strmd5.encode()).decode()
 
     def check_user_login(self, referer, channel_id='12034'):
-        timestamp = float(now_ts_in_millis())
+        timestamp = now_ts_in_millis()
         json_data = {
             "serviceName": "",
             "header": {
@@ -411,6 +412,8 @@ class HttpLoginCMCC(HttpBasic):
             self.easy_get(url=sso_check)
             home_url = 'https://shop.10086.cn/i/?welcome=' + str(now_ts_in_millis())
             self.easy_get(url=home_url)
+            import time
+            time.sleep(0.5)
             resp = self.check_user_login(home_url)
             json_obj = resp.json()
             retCode = json_obj['result']['response_code']
