@@ -471,7 +471,7 @@ def http_cmcc_send_code(mobile):
 def http_cmcc_go_login(obj, sms_code):
     flag = obj.go_login(sms_code=sms_code)
     if flag:
-        rd.setex('cmcc_cookie_{}'.format(obj.mobile), 7200, obj.get_cookies())
+        rd.setex('cmcc_cookie_{}'.format(obj.mobile), 864000, obj.get_cookies())
         result_output.set_msg(u'设置cookie成功')
     return flag
 
