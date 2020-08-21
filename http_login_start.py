@@ -104,10 +104,10 @@ class HttpBasic(object):
             req.headers['Cookie'] = self.get_cookies()
         # 'Cookie': ';'.join([f'{cookie.name}={cookie.value}'for cookie in self._crawler_session.cookies])
         #  处理headers
-        # req.headers['x-forwarded-for'] = '39.130.66.145'
-        # req.headers['Proxy-Client-IP'] = '39.130.66.145'
-        # req.headers['WL-Proxy-Client-IP'] = '39.130.66.145'
-        # req.headers['X-Real-IP'] = '39.130.66.145'
+        req.headers['x-forwarded-for'] = '124.160.212.13'
+        req.headers['Proxy-Client-IP'] = '124.160.212.13'
+        # req.headers['WL-Proxy-Client-IP'] = '115.239.26.46'
+        req.headers['X-Real-IP'] = '124.160.212.13'
         # req.headers['Proxy-Connection'] = 'keep-alive'
 
         prep = self._crawler_session.prepare_request(req)
