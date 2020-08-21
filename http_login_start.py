@@ -408,22 +408,23 @@ class HttpLoginCMCC(HttpBasic):
                                        }
                                        ), allow_redirects=False)
 
-            sso_check = "https://login.10086.cn/SSOCheck.action?channelID=12003&backUrl=https://shop.10086.cn/i/?f=home"
-            self.easy_get(url=sso_check)
-            home_url = 'https://shop.10086.cn/i/?welcome=' + str(now_ts_in_millis())
-            self.easy_get(url=home_url)
-            import time
-            time.sleep(0.5)
-            resp = self.check_user_login(home_url)
-            json_obj = resp.json()
-            retCode = json_obj['result']['response_code']
-            if '0000' == retCode and json_obj['result']['data']['isLogin'] == 1:
-                self._crawler_session.user_info_text = resp.text
-                return True
-            else:
-                result_output.set_code(20002)
-                result_output.set_msg(u'系统繁忙，请您稍后再做手机认证')
-                return False
+            # sso_check = "https://login.10086.cn/SSOCheck.action?channelID=12003&backUrl=https://shop.10086.cn/i/?f=home"
+            # self.easy_get(url=sso_check)
+            # home_url = 'https://shop.10086.cn/i/?welcome=' + str(now_ts_in_millis())
+            # self.easy_get(url=home_url)
+            # import time
+            # time.sleep(0.5)
+            # resp = self.check_user_login(home_url)
+            # json_obj = resp.json()
+            # retCode = json_obj['result']['response_code']
+            # if '0000' == retCode and json_obj['result']['data']['isLogin'] == 1:
+            #     self._crawler_session.user_info_text = resp.text
+            #     return True
+            # else:
+            #     result_output.set_code(20002)
+            #     result_output.set_msg(u'系统繁忙，请您稍后再做手机认证')
+            #     return False
+            return True
         elif '3011' == jo['code']:
             result_output.set_code(20002)
             result_output.set_msg(u'请在移动商城取消登录保护，链接https://login.10086.cn/protect/protect_web.htm，如有疑问，请咨询客服')
@@ -499,7 +500,8 @@ if __name__ == '__main__':
                     if not http_cmcc_go_login(obj, sms_code):
                         result_output.set_code(20002)
                     else:
-                        os.remove(pk_path)
+                        if os.path.exists(pk_path):
+                            os.remove(pk_path)
             else:
                 result_output.set_msg(u'找不到cookie文件，需要先发送短信')
                 result_output.set_code(20003)
