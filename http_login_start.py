@@ -495,13 +495,14 @@ if __name__ == '__main__':
         if len(sys.argv) == 3:
             sms_code = sys.argv[2]
             if os.path.exists(pk_path):
-                with open(pk_path, 'rb') as f:
-                    obj = pickle.loads(f.read())
-                    if not http_cmcc_go_login(obj, sms_code):
-                        result_output.set_code(20002)
-                    else:
-                        if os.path.exists(pk_path):
-                            os.remove(pk_path)
+                f = open(pk_path, 'rb')
+                obj = pickle.loads(f.read())
+                f.close()
+                if not http_cmcc_go_login(obj, sms_code):
+                    result_output.set_code(20002)
+                else:
+                    if os.path.exists(pk_path):
+                        os.remove(pk_path)
             else:
                 result_output.set_msg(u'找不到cookie文件，需要先发送短信')
                 result_output.set_code(20003)
