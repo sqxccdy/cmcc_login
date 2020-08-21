@@ -498,7 +498,8 @@ if __name__ == '__main__':
                     obj = pickle.loads(f.read())
                     if not http_cmcc_go_login(obj, sms_code):
                         result_output.set_code(20002)
-                os.remove(pk_path)
+                    else:
+                        os.remove(pk_path)
             else:
                 result_output.set_code(20003)
         else:
