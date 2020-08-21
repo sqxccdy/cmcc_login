@@ -501,6 +501,7 @@ if __name__ == '__main__':
                     else:
                         os.remove(pk_path)
             else:
+                result_output.set_msg(u'找不到cookie文件，需要先发送短信')
                 result_output.set_code(20003)
         else:
             if os.path.exists(pk_path):
